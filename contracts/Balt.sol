@@ -12,6 +12,7 @@ contract Balt {
     address public owner;
 
     mapping(address => uint256) balances;
+    mapping(address => address[]) permissions;
 
     // TRANSFER? events?
 
@@ -38,14 +39,44 @@ contract Balt {
     }
     
 
-    function transferFrom() public returns(uint256) {
-        // for exchanges, wallets, etc allow 3rd parties to transfer acounts
+    function transferFrom(address from, address to, uint256 amount ) public {
+        
+        bool senderIsAllowed;
+        
+        for (uint i = 0; i < permissions[from].length; i++) {
+            if (permissions[from][i] == msg.sender) {
+                senderIsAllowed = true;                
+            }
+        }
+
+        require(senderIsAllowed, "Sender is not allowed to make this transaction");
+        require(balances[from]>=amount, "Not enough money in from account");
+        
+        balances[from] -= amount;
+        balances[to] += amount;
     }
 
-    function ApproveThirdParty() public returns(uint256) {
-        // Sets an allowance for a third party to spend tokens on behalf of an account.
+    function approveThirdParty(address allowedAddress) public {
+        permissions[msg.sender].push(allowedAddress);
     }
 
+    function removeThirdParty(address allowedAddressToRemove) public {
+        require(permissions[msg.sender].length>0, "Don't have allowed addresses to remove");
+
+        for (uint i = 0; i < permissions[msg.sender].length; i++) {
+            if (permissions[msg.sender][i] == allowedAddressToRemove) {
+                permissions[msg.sender][i] = permissions[msg.sender][permissions[msg.sender].length - 1];
+                permissions[msg.sender].pop();
+                return;
+            }
+        }
+    }
+
+    function getThirdParty() public view returns (address[] memory) {
+        return permissions[msg.sender];
+    }
+
+    
 
 
 }

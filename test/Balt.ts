@@ -12,6 +12,10 @@ describe("Balt Token Contract", function () {
       return { baltToken, owner, addr1, addr2 }
   }
 
+  it("Set the right owner", async() => {
+    const { baltToken, owner } = await loadFixture(deployContractFixture);
+    expect(await baltToken.owner()).to.equal(owner.address);
+  })
   it("Deployment should assign the total supply of tokens to the owner", async function () {    
     const { baltToken } = await loadFixture(deployContractFixture)
     const totalBalance = await baltToken.getTotalSupply()
@@ -67,11 +71,49 @@ describe("Balt Token Contract", function () {
       await baltToken.connect(owner).transfer(addr1, quantityToTransact)
       expect(await baltToken.connect(addr1).getAddressBalance()).to.equal(2)
       await expect(baltToken.connect(addr1).transfer(addr2, 3)).to.be.reverted // await out cause asserting the promise, not the value
-      
-
     })
 
   });
+
+
+  describe("Handle Third Party Transactions", ()=> {
+    it("Allow correct third party permission", async()=>{
+      const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
+      
+      await baltToken.connect(addr1).approveThirdParty(owner)
+      const allowedAddresses = await baltToken.connect(addr1).getThirdParty()
+      expect(allowedAddresses[0]).to.equal(owner)
+    })
+
+    it("Transact from addr1 to addr2 from a third party account", async()=>{
+      const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
+      
+      await baltToken.connect(addr1).approveThirdParty(owner)
+      await baltToken.connect(owner).transfer(addr1, 10)
+      await baltToken.connect(owner).transferFrom(addr1, addr2, 10)
+
+      const addr1AccountBalance:number = await baltToken.connect(addr1).getAddressBalance()
+      const addr2AccountBalance:number = await baltToken.connect(addr2).getAddressBalance()
+
+      expect(addr1AccountBalance).to.equal(0)
+      expect(addr2AccountBalance).to.equal(10)
+    })
+
+
+  })
+
+  // describe("Handle Third Party Transactions", ()=> {
+  //   it("Owner transacts 10 BLT from addr1 to addr2", async()=>{
+  //     const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
+      
+  //     await baltToken.connect(owner).transfer(addr1, 10)
+  //     await baltToken.connect(addr1).approveThirdParty(owner)
+  //     await baltToken.connect(owner).transferFrom(addr1, addr2, 10)
+
+  //     expect(await baltToken.connect(addr1).getAddressBalance()).to.equal(0)
+  //     expect(await baltToken.connect(addr2).getAddressBalance()).to.equal(10)
+  //   })
+  // })
 
 });
 

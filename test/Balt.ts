@@ -50,6 +50,25 @@ describe("Balt Token Contract", function () {
       expect(addr1AccountBalance).to.equal(BigInt(quantityToTransact));
     });
 
+    it("Trigger event on transfer", async function () {
+      const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
+      
+      const totalBalance:number = await baltToken.getTotalSupply()
+      const quantityToTransact:number = 2
+      
+      const ownerWallet = baltToken.connect(owner)
+      const addr1Wallet = baltToken.connect(addr1)
+      
+      await expect(
+        ownerWallet.transfer(addr1, quantityToTransact)
+      )
+      .to.emit(
+        baltToken,
+        "Transfer"
+      )
+      .withArgs(owner.address, addr1.address, quantityToTransact)
+    });
+
     it("Transfer 2 BLT from owner to addr1, then 1 BLT from addr1 to addr2", async function () {
       const quantityToTransact:number = 2
       const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)

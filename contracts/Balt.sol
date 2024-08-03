@@ -16,12 +16,14 @@ contract Balt {
     mapping(address => uint256) balances;
     mapping(address => address[]) permissions;
 
-    // TRANSFER? events?
 
     constructor() {
         balances[msg.sender] = TOTAL_SUPPLY;
         owner = msg.sender; 
     }
+
+    event Transfer(address indexed from, address indexed to, uint256 amount);
+    event TransferFromThirdParty(address indexed transactioner,address indexed from, address indexed to, uint256 amount);
 
 
     // methods  
@@ -38,6 +40,8 @@ contract Balt {
 
         balances[msg.sender] -= amount;
         balances[to] += amount;
+
+        emit Transfer(msg.sender, to, amount);
     }
     
 
@@ -56,6 +60,8 @@ contract Balt {
         
         balances[from] -= amount;
         balances[to] += amount;
+
+        emit TransferFromThirdParty(msg.sender, from, to, amount);
     }
 
     function approveThirdParty(address allowedAddress) public {

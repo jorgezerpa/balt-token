@@ -77,6 +77,26 @@ describe("Balt Token Contract", function () {
 
 
   describe("Handle Third Party Transactions", ()=> {
+    
+    it("Reverts transaction if third party is not allowed", async()=>{
+      const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
+      
+      await expect(baltToken.connect(owner).transferFrom(addr1, addr2, 10)).to.be.reverted
+    })
+
+    it("Remove Permissions", async()=>{
+      const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
+      
+      await baltToken.connect(addr1).approveThirdParty(owner)
+      const allowedAddresses = await baltToken.connect(addr1).getThirdParty()
+      expect(allowedAddresses[0]).to.equal(owner)
+      
+      await baltToken.connect(addr1).removeThirdParty(owner)
+      const allowedAddressesAfterRemove = await baltToken.connect(addr1).getThirdParty()
+
+      await expect(allowedAddressesAfterRemove.length).to.equal(0)
+    })
+
     it("Allow correct third party permission", async()=>{
       const { baltToken, addr1, addr2, owner } = await loadFixture(deployContractFixture)
       

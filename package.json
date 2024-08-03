@@ -1,0 +1,15 @@
+{
+  "name": "balt",
+  "version": "1.0.0",
+  "description": "Balto's cryptocurrency",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jorge Zerpa",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.7"
+  }
+}

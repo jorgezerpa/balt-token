@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 import { ethers } from "ethers"
+import { BaltABI } from "@/abi/Balt";
 
 export interface AccountType {
   address?: string;
@@ -11,12 +12,21 @@ export interface AccountType {
   network?: string;
 }
 
+const CONTRACT_ADDRESS = "0x730114A4Aee3Bf806573eB05eD14f45A0bD44dD5"
+const ABI = BaltABI
+
+
 export default function Home() {
 
   const [buttonHovered, setButtonHovered] = useState(false)
 
   // metamask connection
   const [accountData, setAccountData] = useState<AccountType|null>(null)
+
+  // Balto Token
+  const [currentBalance, setCurrentBalance] = useState(0)
+  const [showTransferForm, setShowTransferForm] = useState(false)
+  const [transferData, setTransferData] = useState({ amount:"", address:"" })
 
   const _connectToMetaMask = useCallback(async () => {
     const ethereum = window.ethereum;
@@ -83,7 +93,7 @@ export default function Home() {
   useEffect(() => {
     accountData
   }, [accountData]);
-
+  
 
 
   function truncateText(text:string) {
@@ -93,6 +103,52 @@ export default function Home() {
     return `${text.substring(0, 5)}...${text.substring(text.length - 5)}`;
   }
 }
+
+
+async function handleTransfer() {
+  // connect to my smart contract 0x730114A4Aee3Bf806573eB05eD14f45A0bD44dD5 and exec a transaction 
+  // you have to call the method "transfer" of the contract and pass transferdata as parameters
+  try {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = provider.getSigner()
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+    const contractWithSigner = contract.connect(await signer)
+    await contractWithSigner.transfer(transferData.address, transferData.amount)
+  } catch (error) {
+    console.error('Error during transfer:', error);
+  }
+}
+
+
+const getAccountBalance = async() => {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = provider.getSigner()
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+    const contractWithSigner = contract.connect(await signer)
+    const balance = await contractWithSigner.getAddressBalance()
+    setCurrentBalance(Number(balance))
+}
+
+useEffect(()=>{
+  if(!currentBalance) getAccountBalance()
+}, [])
+
+
+const listenTransfers = async() => {
+    const provider = new ethers.BrowserProvider(window.ethereum);
+    const signer = provider.getSigner()
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, provider);
+    const contractWithSigner = contract.connect(await signer)
+
+    contract.on("Transfer", (to, amount, from) => {
+      console.log(to, amount, from);
+    });
+
+}
+
+useEffect(()=>{
+  listenTransfers()
+}, [])
   
 
   return (
@@ -115,23 +171,38 @@ export default function Home() {
       }
       {
         accountData && (
-          <div className="h-screen bg-gradient-to-br from-gray-950  via-gray-700 to-gray-950">
+          <div className="pb-10 min-h-screen bg-gradient-to-br from-gray-950  via-gray-700 to-gray-950">
            
-            <div className="py-5 pt-24 flex justify-center">
+            <div className="py-5 pt-24 flex justify-center items-center flex-col">
               <div className="text-white bg-purple-600 py-2 px-4 rounded-full border border-gray-300">
                 { accountData.network } { truncateText(accountData.address || "") }
               </div>
+              {/* <div className="text-white text-xs">{ accountData.balance }</div> */}
             </div>
 
             <div className="text-gray-200 text-center sm:text-4xl text-3xl">
-              { accountData.balance }
-              <div className="text-gray-400 text-center sm:text-2xl text-xl">SepoliaETH</div>
+              { currentBalance }
+              <div className="text-gray-400 text-center sm:text-2xl text-xl">BLT</div>
               <div className="mb-10" />
             </div>
 
             <div className="flex justify-center items-center gap-2 flex-wrap">
               <div className="w-[200px] h-[50px] bg-gray-300 bg-opacity-30 hover:border hover:border-gray-300 rounded-md text-white hover:scale-95 transition-all flex justify-center items-center cursor-pointer">Transfer</div>
               <div className="w-[200px] h-[50px] bg-gray-300 bg-opacity-30 hover:border hover:border-gray-300 rounded-md text-white hover:scale-95 transition-all flex justify-center items-center cursor-pointer">Allow Third Party</div>
+            </div>
+
+            <div className="mt-10 px-10 max-w-[800px] mx-auto">
+              <div className="mb-4">
+                <label htmlFor="first_name" className="block mb-2 text-sm font-medium text-white">To</label>
+                <input value={transferData.address} onChange={(e)=>setTransferData({ ...transferData, address:e.target.value })} type="text" id="first_name" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="0x00000000000000000000" required />
+              </div>
+              <div>
+                <label htmlFor="first_name" className="block mb-2 text-sm font-medium text-white">Amount</label>
+                <input value={transferData.amount} onChange={(e)=>setTransferData({ ...transferData, amount:e.target.value })} type="text" id="first_name" className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="BLT" required />
+              </div>
+              <div>
+                <div onClick={handleTransfer} className="w-full text-center mt-5 text-white bg-gradient-to-b from-green-600 to-green-900 py-3 rounded-md shadow-lg hover:shadow-none shadow-gray-800 hover:scale-[0.99] hover:outline hover:outline-gray-400 transition-all">Send</div>
+              </div>
             </div>
 
             <div className="mt-10 px-10 max-w-[800px] mx-auto">
